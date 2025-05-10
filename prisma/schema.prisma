@@ -1,0 +1,312 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User roles and permissions
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  KITCHEN
+  BAR
+  CASHIER
+}
+
+// Menu items
+model MenuItem {
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  category      String
+  price         Float
+  isLiquor      Boolean         @default(false)
+  liquorVariants LiquorVariant[]
+  image         String?
+  inStock       Boolean         @default(true)
+  isAvailable   Boolean         @default(true)
+  department    Department
+  deleted       Boolean         @default(false)
+  itemUsages    ItemUsage[]
+  orderItems    OrderItem[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+enum Department {
+  BAR
+  KITCHEN
+}
+
+// Customer orders
+model Order {
+  id             String      @id @default(uuid())
+  orderNumber    String      @unique
+  tableNumber    String?
+  roomNumber     String?
+  orderType      OrderType
+  status         OrderStatus @default(PLACED)
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id])
+  items          OrderItem[]
+  subtotal       Float
+  discount       Float       @default(0)
+  tax            Float       @default(0)
+  serviceCharge  Float       @default(0)
+  total          Float
+  paymentMethod  String?
+  paymentStatus  Boolean     @default(false)
+  kitchenTickets KitchenTicket[]
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  reservationId  String?
+  reservation    Reservation? @relation(fields: [reservationId], references: [id])
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  ROOM_SERVICE
+}
+
+enum OrderStatus {
+  PLACED
+  IN_KITCHEN
+  SERVED
+  BILLED
+  COMPLETED
+  CANCELLED
+}
+
+// Order line items
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  menuItemId  String
+  menuItem    MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity    Int
+  price       Float
+  modifiers   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Kitchen tickets
+model KitchenTicket {
+  id        String           @id @default(uuid())
+  ticketNumber String        @unique
+  orderId   String
+  order     Order            @relation(fields: [orderId], references: [id])
+  department Department
+  status    KitchenTicketStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+enum KitchenTicketStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Inventory items
+model Inventory {
+  id            String      @id @default(uuid())
+  name          String
+  unit          String      // e.g., kg, liter, piece
+  currentStock  Float
+  minimumStock  Float
+  cost          Float
+  isActive      Boolean     @default(true)
+  usage         ItemUsage[]
+  purchaseItems PurchaseItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// Menu item to inventory mapping
+model ItemUsage {
+  id          String    @id @default(uuid())
+  menuItemId  String
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id])
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  quantity    Float     // How much of this inventory is used per menu item
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([menuItemId, inventoryId])
+}
+
+// Suppliers/vendors
+model Supplier {
+  id        String     @id @default(uuid())
+  name      String
+  contact   String
+  email     String?
+  phone     String
+  address   String?
+  isActive  Boolean    @default(true)
+  purchases Purchase[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+// Purchase orders
+model Purchase {
+  id          String         @id @default(uuid())
+  poNumber    String         @unique
+  supplierId  String
+  supplier    Supplier       @relation(fields: [supplierId], references: [id])
+  orderDate   DateTime       @default(now())
+  deliveryDate DateTime?
+  status      PurchaseStatus @default(ORDERED)
+  items       PurchaseItem[]
+  total       Float
+  paid        Float          @default(0)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+enum PurchaseStatus {
+  ORDERED
+  RECEIVED
+  PARTIAL
+  CANCELLED
+}
+
+// Purchase order line items
+model PurchaseItem {
+  id          String    @id @default(uuid())
+  purchaseId  String
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id])
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  quantity    Float
+  unitPrice   Float
+  total       Float
+  received    Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Hotel room management
+model Room {
+  id            String        @id @default(uuid())
+  roomNumber    String        @unique
+  type          RoomType
+  floor         Int
+  status        RoomStatus    @default(AVAILABLE)
+  rate          Float
+  description   String?
+  reservations  Reservation[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum RoomType {
+  STANDARD
+  DELUXE
+  SUITE
+  EXECUTIVE
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  CLEANING
+}
+
+// Guest information
+model Guest {
+  id           String        @id @default(uuid())
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String
+  address      String?
+  idType       String?       // Passport, National ID, etc.
+  idNumber     String?
+  reservations Reservation[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// Room reservations
+model Reservation {
+  id            String           @id @default(uuid())
+  reservationNumber String       @unique
+  guestId       String
+  guest         Guest            @relation(fields: [guestId], references: [id])
+  roomId        String
+  room          Room             @relation(fields: [roomId], references: [id])
+  checkIn       DateTime
+  checkOut      DateTime
+  status        ReservationStatus @default(CONFIRMED)
+  numberOfGuests Int
+  totalAmount   Float
+  paidAmount    Float            @default(0)
+  orders        Order[]          // Link to restaurant/bar orders
+  specialRequests String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+model Table {
+  id          Int      @id @default(autoincrement())
+  number      Int      @unique
+  capacity    Int
+  isOccupied  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Add these types and models for liquor variants
+
+enum LiquorUnit {
+  ML
+  LTR
+}
+
+model LiquorVariant {
+  id          String    @id @default(uuid())
+  menuItemId  String
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id])
+  value       Float
+  unit        LiquorUnit
+  price       Float
+  inStock     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+} 
