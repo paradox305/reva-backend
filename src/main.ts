@@ -6,9 +6,10 @@ async function bootstrap() {
   
   // Enable CORS
   app.enableCors({
-    origin: 'http://localhost:3000', // Your frontend URL
+    origin: ['https://reva-backend-production-016a.up.railway.app', '*'], // Allow Railway URL and any origin
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
   });
 
   // Start the server
