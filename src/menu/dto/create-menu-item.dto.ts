@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsBoolean, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
 
 export enum Department {
   BAR = 'BAR',
@@ -25,4 +25,9 @@ export class CreateMenuItemDto {
 
   @IsEnum(Department)
   department: Department;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  inventoryCount?: number;
 } 

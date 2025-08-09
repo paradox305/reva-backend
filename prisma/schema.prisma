@@ -49,6 +49,7 @@ model MenuItem {
   orderItems    OrderItem[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  inventoryCount Int            @default(0)
 }
 
 enum Department {
