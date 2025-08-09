@@ -68,8 +68,8 @@ export class OrdersService {
     }
 
     // Calculate other amounts (you can adjust these percentages as needed)
-    const tax = subtotal * 0.1; // 10% tax
-    const serviceCharge = subtotal * 0.05; // 5% service charge
+    const tax = 0
+    const serviceCharge = 0
     const total = subtotal + tax + serviceCharge;
 
     return { subtotal, tax, serviceCharge, total };
